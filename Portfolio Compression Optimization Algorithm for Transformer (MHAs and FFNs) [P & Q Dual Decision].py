@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-# --------- 参数设定 ---------
+# --------- 参数设定(Parameter settings) ---------
 B_i = 4
 B_j = 6
 n_heads = 12 # 注意力头数(Number of attention heads)
