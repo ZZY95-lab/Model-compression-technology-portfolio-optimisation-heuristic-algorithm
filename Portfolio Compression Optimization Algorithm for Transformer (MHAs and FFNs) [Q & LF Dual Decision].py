@@ -3,13 +3,13 @@ import torch.nn.functional as F
 import numpy as np
 
 # --------- 基本设定参数(Basic parameter settings) ---------
-Delta = 0.01
 B_i = 4
 B_j = 6
 n_heads = 12  # 注意力头数(Number of attention heads)
 N_ffn = 12  # 前馈神经数(Number of feedforward neural network)
 dim_model = 512 # 模型维度(Model dimension)
 rank_candidates = [8, 16, 32, 64] # 秩选择集(Rank selection set)
+bit_candidates = [2, 3, 4, 5, 6, 7, 8]  # 秩选择集(Quantitative bit selection set [Delta = 1 / (2^b)])
 T = 100  # 迭代轮数(Number of iterations)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -54,15 +54,18 @@ def low_rank_approximation(x, r1, r2):
 
 # --------- 主循环优化(Main loop optimisation) ---------
 L_best = -float('inf')
-Q_xi_star, Q_xj_star, r_best, r_prime_best = None, None, None, None
+Q_xi_star, Q_xj_star = None, None
+r_best, r_prime_best, delta_star = None, None, None
 
 for t in range(T):
     for r in rank_candidates:
         for r_prime in rank_candidates:
-            Q_xi = attention_quantized(x_i)
-            Q_xj = ffn_quantized(x_j)
+            for b in bit_candidates:
+                delta = 1.0 / (2 ** b)
 
-            H3_hat = low_rank_approximation(H3_xj, r, r_prime)
+                Q_xi = attention_quantized(x_i, delta)
+                Q_xj = ffn_quantized(x_j, delta)
+                H3_hat = low_rank_approximation(H3_xj, r, r_prime)
 
             # 感知损失(perceptual loss)
             LQ = beta1 * F.mse_loss(Q_xi, Qo_xi) + beta2 * F.mse_loss(Q_xj, Qo_xj)
@@ -81,12 +84,16 @@ for t in range(T):
             # 优化目标函数(Optimise the objective function)
             L = chi1 * Delta_E - chi2 * Delta_A
 
-            if L > L_best:
-                L_best = L
-                Q_xi_star = Q_xi.clone()
-                Q_xj_star = Q_xj.clone()
-                r_best, r_prime_best = r, r_prime
+                if L > L_best:
+                    L_best = L
+                    Q_xi_star = Q_xi.clone()
+                    Q_xj_star = Q_xj.clone()
+                    r_best = r
+                    r_prime_best = r_prime
+                    delta_star = delta
 
 # --------- 输出最终结果(Output the final result) ---------
 print("Best ranks:", r_best, r_prime_best)
 print("Best objective value:", L_best)
+print("Optimal Delta:", delta_star)
+print("Optimal Bit-width b* =", np.log2(1 / delta_star))
