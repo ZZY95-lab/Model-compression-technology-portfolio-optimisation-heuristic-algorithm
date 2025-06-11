@@ -9,7 +9,7 @@ n_heads = 12  # 注意力头数(Number of attention heads)
 N_ffn = 12  # 前馈神经数(Number of feedforward neural network)
 dim_model = 512 # 模型维度(Model dimension)
 rank_candidates = [8, 16, 32, 64] # 秩选择集(Rank selection set)
-bit_candidates = [2, 3, 4, 5, 6, 7, 8]  # 秩选择集(Quantitative bit selection set [Delta = 1 / (2^b)])
+bit_candidates = [2, 3, 4, 5, 6, 7, 8]  # 量化位数选择集(Quantitative bit selection set [Delta = 1 / (2^b)])
 T = 100  # 迭代轮数(Number of iterations)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
